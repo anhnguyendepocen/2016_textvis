@@ -1,4 +1,4 @@
-plotWords2 = function (x, y = NULL, words = NULL, wordfreq = NULL, xlab = "", 
+plotWords2 = function (x, y = NULL, words = NULL, wordfreq = NULL, xlab = "", xlim=NULL,
                        ylab = "", yaxt = "n", random.y = F, col = color.scale(x, c(1, 2, 0), c(0, 1, 1), 0), ...) 
 {
   if (is.null(wordfreq)) 
@@ -10,7 +10,7 @@ plotWords2 = function (x, y = NULL, words = NULL, wordfreq = NULL, xlab = "",
     y = wordsize
   xmargin = (max(x) - min(x)) * 0.2
   ymargin = (max(y) - min(y)) * 0.2
-  xlim = c(min(x) - xmargin, max(x) + xmargin)
+  if (is.null(xlim)) xlim = c(min(x) - xmargin, max(x) + xmargin)
   ylim = c(min(y) - ymargin, max(y) + ymargin)
   
   plot(x, y, type = "n", xlim = xlim, ylim = ylim, frame.plot = F, 

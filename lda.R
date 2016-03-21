@@ -15,3 +15,7 @@ topics = c("energy", "congress", "people", "boast", "budget", "tax", "terror", "
 topics = c("job", "education", "nuclear", "health", "terror", "americans", "boast", "budget", "future", "freedom", "reform", "energy", "tax", "congress", "US")
 
 save(m, dtm, topics, file="model.rda")
+
+x = terms(m, 10)
+colnames(x) = topics
+View(x)

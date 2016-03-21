@@ -22,7 +22,7 @@ h = rescale(log(cmp$over), c(1, .6666))
 s = rescale(sqrt(cmp$chi), c(0,1))
 cmp$col = hsv(h, s, .33 + .67*s)
 cmp = arrange(cmp, -freq)
-
+save(cmp, file="word_contrast.rda")
 
 # contrast plot
 cmp = arrange(cmp, -freq)
