@@ -1,3 +1,4 @@
+source("functions.R")
 library(corpustools)
 data(sotu)
 load("model.rda")
@@ -7,39 +8,46 @@ dtm.bush = dtm[rownames(dtm) %in% sotu.meta$id[sotu.meta$headline == "George W. 
 
 cmp = corpustools::corpora.compare(dtm.obama, dtm.bush)
 cmp$freq = cmp$termfreq.x + cmp$termfreq.y
-cmp = arrange(cmp, -freq)
-cmp = head(cmp, 200)
 
-col = hsv()
+wordfreqs = dtm.to.df(dtm)
+wordfreqs = merge(sotu.meta, wordfreqs, by.x="id", by.y="doc")
+dates = aggregate(wordfreqs["date"], by=wordfreqs["term"], FUN=mmode)
+cmp = merge(cmp, dates)
 
-col = color.scale(log(cmp$over), c(.5, 1, 0), c(0, 1, 1), 0)
+adates = aggregate(list(avgdate=wordfreqs$date), by=wordfreqs["term"], FUN=mean)
+cmp = merge(cmp, adates)
 
+# define word color based on over and chi
 h = rescale(log(cmp$over), c(1, .6666))
 s = rescale(sqrt(cmp$chi), c(0,1))
-col = hsv(h, s, .5)
-col = hsv(h, 1, .5)
-plotWords2(x=log(cmp$over), words=cmp$term, wordfreq=cmp$freq, random.y = T, col=col)
+cmp$col = hsv(h, s, .33 + .67*s)
+cmp = arrange(cmp, -freq)
 
-plot(log(sample(cmp$over, 100)), ylim=c(-2,2))
 
-wordsize = rescale(log(cmp$freq), c(0.75, 2))
+# contrast plot
+cmp = arrange(cmp, -freq)
+with(head(cmp, 130), plotWords2(x=log(over), words=term, wordfreq=freq, random.y = T, col=col))
 
-x = exp(cmp$over)
-plot(log(cmp$over))
+text(-2, 0, "Bush", srt=90, col="red", cex=2)
+text(2, 0, "Obama", srt=90, col="blue", cex=2)
+title(xlab="Overrepresentation")
 
-  zif (is.null(y) & random.y) 
-    y = sample(seq(-1, 1, by = 0.01), length(x))
-  if (is.null(y) & !random.y) 
-    y = wordsize
-  xmargin = (max(x) - min(x)) * 0.2
-  ymargin = (max(y) - min(y)) * 0.2
-  xlim = c(min(x) - xmargin, max(x) + xmargin)
-  ylim = c(min(y) - ymargin, max(y) + ymargin)
-  
-  plot(x, y, type = "n", xlim = xlim, ylim = ylim, frame.plot = F, 
-       yaxt = yaxt, ylab = ylab, xlab = xlab, ...)
-  wl <- as.data.frame(wordlayout(x, y, words, cex = wordsize))
-  
-  text(wl$x + 0.5 * wl$width, wl$y + 0.5 * wl$ht, words, cex = wordsize, 
-       col = col)
-}
+# over time
+with(head(cmp, 150), 
+     plotWords2(x=date, words=term, wordfreq=freq, random.y = T, col=col))
+
+
+# over time
+cmp = arrange(cmp, -freq)
+with(head(cmp, 130), 
+     plotWords2(x=date, words=term, wordfreq=freq, random.y = T, col=col))
+with(head(cmp, 150), 
+     plotWords2(x=avgdate, words=term, wordfreq=freq, random.y = T, col=col))
+
+
+cmp = arrange(cmp, -chi)
+with(head(cmp, 130), 
+     plotWords2(x=date, words=term, wordfreq=freq, random.y = T, col=col))
+
+
+

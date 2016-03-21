@@ -24,7 +24,7 @@ head(tpw)
 cm = cor(tpw>0)
 for(i in 1:15) cm[i,i]=0
 heatmap(cm, symm = T)
-
+?dist
 # but this does makes sense: (so it's probably a weighting issue of sorts)
 cm = cor(tpw>0)
 for(i in 1:15) cm[i,i]=0
@@ -47,19 +47,16 @@ for(i in 1:15) cm[i,i]=0
 heatmap(cm, symm = T)
 
 
+cosineDist <- function(x){
+  as.dist(1 - x%*%t(x)/(sqrt(rowSums(x^2) %*% t(rowSums(x^2))))) 
+}
+
 heatmap(cm, symm=T)
 
-library(igraph)
-g = igraph::graph_from_adjacency_matrix(cm, weighted = T, mode = "undirected")
-g = delete_edges(g, which(E(g)$weight<0))
-
-g = delete.vertices(g, degree(g) == 0)
-
-E(g)$width = E(g)$weight * 100
-plot(g)
-
-plot(delete.isolates(g))
-edges(g)
-as.data.frame(g, "edges")
-igraph::as_data_frame(g, "edges")
+d = cosineDist(t(x))
+d = dist(t(x), method="cosine")
+m = as.matrix(d)
+for(i in 1:15) m[i,i]=min(d)
+m = (mean(d) - m) / sd(m)
+heatmap(m, symm=T)
 
