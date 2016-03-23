@@ -29,6 +29,9 @@ set.seed(12345)
 m = lda.fit(dtm, K=15, alpha=.5)
 topics = c("job", "education", "nuclear", "health", "terror", "americans", "boast", "budget", "future", "freedom", "reform", "energy", "tax", "congress", "US")
 
+set.seed(123)
+m2 = lda.fit(dtm, K=10, alpha=.1)
+topics2 = c("war", "people", "energy", "education", "tax", "reform", "freedom", "terrorism", "jobs", "health")
 
 # in which topic does each word occur 'most frequently'?
 words = terms(m, threshold=.001)
@@ -42,8 +45,20 @@ cmp$topic = as.numeric(word.topics[as.character(cmp$term)])
 cmp$topic.name = factor(cmp$topic, labels = topics)
 cols = sample(rainbow(length(topics)))
 cols = sample(substr(rainbow(length(topics), s=0.6,alpha=0.5), 1,7))
-
 cmp$topic.col = cols[cmp$topic]
+
+
+words = terms(m2, threshold=.001)
+words = unique(rle(unlist(words))$values)
+w = m2@wordassignments
+colnames(w) = m2@terms
+w = w[, m2@terms %in% words]
+mostfrequent = function(x) {t = names(sort(table(x[x!=0]), decreasing = T)[1]); if(is.null(t)) 0 else t}
+word.topics = apply(w, MARGIN = 2, FUN = mostfrequent)
+cmp$topic2 = as.numeric(word.topics[as.character(cmp$term)])
+cmp$topic2.name = factor(cmp$topic2, labels = topics2)
+cols = sample(substr(rainbow(length(topics2), s=0.6,alpha=0.5), 1,7))
+cmp$topic2.col = cols[cmp$topic2]
 
 
 

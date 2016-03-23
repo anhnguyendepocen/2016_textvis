@@ -17,6 +17,13 @@ compare.topics <- function(m, cmp_topics) {
 }
 
 
+terms = compare.topics(m2, match(c("freedom", "war"), topics2))
+with(head(terms, 100), plotWords(x=prop, wordfreq = freq, words = term, col=col, xaxt="none", random.y = T, main="Topic words for War on Terror and Nuclear Proliferation", sub="Color and position indicate topic"))
+axis(1, at=c(0, 0.5, 1), labels = c("War on Terror", "", "Nuclear Proliferation"))
+
+
+
+
 terms = compare.topics(m, match(c("nuclear", "terror"), topics))
 with(head(terms, 100), plotWords(x=prop, wordfreq = freq, words = term, col=col, xaxt="none", random.y = T, main="Topic words for War on Terror and Nuclear Proliferation", sub="Color and position indicate topic"))
 axis(1, at=c(0, 0.5, 1), labels = c("War on Terror", "", "Nuclear Proliferation"))
@@ -47,9 +54,8 @@ compare.topics3 <- function(m, cmp_topics) {
   terms$nn = rowSums(terms[c("x","y","z")] > 0)
   arrange(terms, -nn, -freq)
 }
+
 terms = compare.topics3(m, match(c("tax", "budget", "health"), topics))
-
-
 
 with(head(terms, 50), plotWords(tx, ty, term, freq, col=col, xaxt="none", main=c("Topic words for Health, Tax, and Budget"),  sub="Colour indicates topic"))
 axis(1, at=c(0, 0.5, 1), labels = c("Tax", "", "Health"), line = 1)
@@ -60,4 +66,19 @@ terms$col.speaker = cmp$col[match(terms$term, cmp$term)]
 with(head(terms, 50), plotWords(tx, ty, term, freq, col=col.speaker, xaxt="none", main="Topic words for Health, Tax, and Budget", sub="Colour indicates speaker, red=Bush, blue=Obama"))
 axis(1, at=c(0, 0.5, 1), labels = c("Tax", "", "Health"), line = 1)
 axis(2, at = c(0,0.5, 1), labels = c("","", "Budget"), line = 1)
+
+
+
+terms = compare.topics3(m2, match(c("terrorism", "war", "freedom"), topics2))
+
+with(head(terms, 75), plotWords(tx, ty, term, freq, col=col, xaxt="none", main=c("Topic words for Health, Tax, and Budget"),  sub="Colour indicates topic"))
+axis(1, at=c(0, 0.5, 1), labels = c("Tax", "", "Health"), line = 1)
+axis(2, at = c(0,0.5, 1), labels = c("","", "Budget"), line = 1)
+
+terms$col.speaker = cmp$col[match(terms$term, cmp$term)]
+
+with(head(terms, 50), plotWords(tx, ty, term, freq, col=col.speaker, xaxt="none", main="Topic words for Health, Tax, and Budget", sub="Colour indicates speaker, red=Bush, blue=Obama"))
+axis(1, at=c(0, 0.5, 1), labels = c("Tax", "", "Health"), line = 1)
+axis(2, at = c(0,0.5, 1), labels = c("","", "Budget"), line = 1)
+
 
