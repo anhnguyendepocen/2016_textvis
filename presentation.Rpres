@@ -1,0 +1,342 @@
+<style>
+.reveal h1, .reveal h2, .reveal h3 {
+  word-wrap: normal;
+  -moz-hyphens: none;
+}
+
+pre code.r {font-size: 1em;}
+
+.reveal section div.slideContent img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;}
+</style>
+
+Why word clouds aren't always stupid
+========================================================
+author: Wouter van Atteveldt & Kasper Welbers
+date: Visual Text Analytics and Social Science, 2016-03-24
+css: presentation.css
+
+========================================================
+
+
+```{r}
+library(corpustools)
+dtm.wordcloud(freqs=sqrt(7:1),
+  terms=c("Word clouds", "are","fancy", "but", "convey", "little", "information"))
+```
+
+
+Enter: corpustools::plotWords
+========================================================
+
+```{r}
+plotWords(x=1:5, y=(1:5)**2, words = c(rep("up",3),"and","away"), col=rainbow(5))
+```
+
+Case: State of the Union 
+========================================================
+
+```{r}
+data(sotu)
+kable(aggregate(cbind(Freq=sotu.meta$id), list(Speaker=sotu.meta$headline), length))
+kable(head(sotu.tokens))
+```
+
+Contrast: Bush vs Obama
+===
+
+```{r}
+dtm = with(sotu.tokens[sotu.tokens$pos1 %in% c("N", "A", "M"), ],
+           dtm.create(aid, lemma))
+obama = sotu.meta$id[sotu.meta$headline == "Barack Obama"]
+cmp  = corpora.compare(dtm, select.rows = obama)
+h = rescale(log(cmp$over), c(1, .6666))
+s = rescale(sqrt(cmp$chi), c(.25,1))
+cmp$col = hsv(h, s, .33 + .67*s)
+kable(head(cmp))
+```
+
+Contrast: Bush vs Obama
+===
+
+```{r, fig.width=20, fig.height=10}
+cmp = arrange(cmp, -termfreq)
+with(head(cmp, 130), plotWords(x=log(over), words=term, wordfreq=termfreq, random.y = T, col=col, scale=5))
+text(-2, 0, "Bush", srt=90, col="red", cex=2)
+text(2, 0, "Obama", srt=90, col="blue", cex=2)
+title(xlab="Overrepresentation")
+```
+
+Contrast: Over time
+===
+
+```{r, fig.width=20, fig.height=8}
+wordfreqs = dtm.to.df(dtm)
+wordfreqs = merge(sotu.meta, wordfreqs, by.x="id", by.y="doc")
+mmode <- function(v) {uniqv <- unique(v); uniqv[which.max(tabulate(match(v, uniqv)))]}
+dates = aggregate(wordfreqs["date"], by=wordfreqs["term"], FUN=mmode)
+cmp = arrange(merge(cmp, dates), -termfreq)
+with(head(cmp, 150), plotWords(x=date, words=term, wordfreq=termfreq, random.y = T, col=col, scale=5))
+```
+
+
+Topic Models
+====================================
+type: section
+
+
+Visualizing word clusters
+===
+
+```{r}
+set.seed(123)
+m = lda.fit(dtm, K=10, alpha=.1)
+topics = c("War", "People", "Energy", "Education", "Tax", "Reform", "Freedom", "Terrorism", "Jobs", "Health")
+x = terms(m, 10)
+colnames(x) = topics
+kable(x)
+```
+
+Merge topic and word information
+===
+
+```{r}
+w = m@wordassignments
+colnames(w) = m@terms
+mostfrequent = function(x) {t = names(sort(table(x[x!=0]), decreasing = T)[1]); if(is.null(t)) 0 else t}
+word.topics = apply(w, MARGIN = 2, FUN = mostfrequent)
+cmp$topic = as.numeric(word.topics[as.character(cmp$term)])
+cmp$topic.name = factor(cmp$topic, labels = topics)
+cols = sample(substr(rainbow(length(topics), s=0.6,alpha=0.5), 1,7))
+cmp$topic.col = cols[cmp$topic]
+kable(head(cmp)[-2:-9])
+```
+
+Topics over time
+===
+
+```{r, fig.width=20, fig.height=8}
+with(head(cmp, 125), plotWords(date, topic, words=as.character(term), wordfreq = termfreq, col=topic.col, scale=5))
+```
+
+Topic overlap
+===
+
+```{r}
+cm = cor(t(m@beta))
+colnames(cm) = rownames(cm) = topics
+diag(cm) = 0
+heatmap(cm, symm = T)
+```
+
+View topic overlap
+===
+
+```{r}
+compare.topics <- function(m, cmp_topics) {
+  assignments = dtm.to.df(m@wordassignments, term_labels=m@terms, doc_labels=m@documents)
+  terms = dcast(assignments, term ~ freq, value.var = "doc", fun.aggregate = length)
+  terms = terms[, c(1, cmp_topics+1)]
+  terms$freq = rowSums(terms[-1])
+  terms = terms[terms$freq > 0,]
+  terms$prop = terms[[2]] / terms$freq
+  terms$col = hsv(rescale(terms$prop, c(1, .6666)), .5, .5)
+  terms$nn = rowSums(terms[2:3]>0)
+  terms[order(-terms$freq), ]
+}
+```
+
+Topic overlap: War and Peace
+===
+
+```{r, echo=F}
+set.seed(123)
+```
+
+```{r, fig.width=20, fig.height=8}
+terms = compare.topics(m, match(c("Freedom", "War"), topics))
+terms = compare.topics(m, match(c("Reform", "Tax"), topics))
+with(head(terms, 100), plotWords(x=prop, wordfreq = freq, words = term, col=col, xaxt="none", random.y = T, scale=5))
+```
+
+Topic overlap: Who is speaking?
+===
+
+```{r, echo=F}
+set.seed(123)
+```
+
+```{r, fig.width=20, fig.height=8}
+terms$col.speaker = cmp$col[match(terms$term, cmp$term)]
+with(head(terms, 100), plotWords(x=prop, wordfreq = freq, words = term, col=col.speaker, xaxt="none", random.y = T, scale=5))
+
+```
+
+Topic overlap: three topics
+===
+
+```{r}
+compare.topics3 <- function(m, cmp_topics) {
+  assignments = dtm.to.df(m@wordassignments, term_labels=m@terms, doc_labels=m@documents)
+  terms = dcast(assignments, term ~ freq, value.var = "doc", fun.aggregate = length)
+  terms = terms[,c(1, cmp_topics+1)] # 'term is 1
+  colnames(terms)[-1] = c("x", "y", "z")
+  terms$freq = rowSums(terms[-1])
+  terms = terms[terms$freq>0, ]
+  terms$prop.x = terms$x / terms$freq
+  terms$prop.y = terms$y / terms$freq
+  terms$prop.z = terms$z / terms$freq
+  tern = ggtern::tlr2xy(terms[c("x", "y", "z")], ggtern::coord_tern())
+  terms$tx = tern$x
+  terms$ty = tern$y
+  terms$col = with(terms, rgb(x/freq, y/freq, z/freq))
+  terms$nn = rowSums(terms[c("x","y","z")] > 0)
+  terms[order(-terms$freq), ]
+}
+```
+
+Topic overlap: Health, Reform, and Tax
+===
+
+```{r, echo=F}
+set.seed(123)
+```
+
+```{r}
+terms = compare.topics3(m, match(c("Tax", "Reform", "Health"), topics))
+with(head(terms, 75), plotWords(tx, ty, term, freq, col=col, xaxt="none", scale=3))
+```
+
+Who wants reform?
+===
+
+```{r, echo=F}
+set.seed(123)
+```
+
+```{r}
+terms$col.speaker = cmp$col[match(terms$term, cmp$term)]
+with(head(terms, 75), plotWords(tx, ty, term, freq, col=col.speaker, xaxt="none", scale=3))
+```
+
+Educating the people about terrorism?
+===
+
+```{r, echo=F}
+set.seed(123)
+```
+```{r}
+terms = compare.topics3(m, match(c("Terrorism", "Education", "People"), topics))
+with(head(terms, 75), plotWords(tx, ty, term, freq, col=col, xaxt="none", scale=3))
+```
+
+Educating the people about terrorism?
+===
+
+
+```{r, echo=F}
+set.seed(123)
+```
+```{r}
+terms$col.speaker = cmp$col[match(terms$term, cmp$term)]
+with(head(terms, 75), plotWords(tx, ty, term, freq, col=col.speaker, xaxt="none", scale=3))
+```
+
+
+Semantic Network Analysis
+====================================
+type: section
+
+
+Semantic Network Analysis
+===
+
+```{r}
+library(semnet)
+g = with(sotu.tokens[sotu.tokens$pos1 %in% c("N", "M", "A"), ],
+   windowedCoOccurenceNetwork(location = id, term = lemma, context = aid, window.size = 20))
+kable(head(get.data.frame(g, "edges")))
+```
+
+
+Semantic Network Analysis
+===
+
+```{r, message=F, fig.width=10, fig.height=10}
+gb = getBackboneNetwork(g, alpha = 1e-03, max.vertices = 75)
+gb = decompose.graph(gb, min.vertices = 5, max.comps = 1)[[1]]
+V(gb)$cluster = edge.betweenness.community(gb)$membership
+gb = setNetworkAttributes(gb, size_attribute = V(gb)$freq, cluster_attribute = V(gb)$cluster)
+plot(gb)
+```
+
+Semantic Networks: color by speaker
+===
+
+```{r}
+V(gb)$frame.color = V(gb)$color  = cmp$col[match(V(gb)$name, cmp$term)]
+plot(gb)
+```
+
+Semantic Networks: color by LDA topic
+===
+
+```{r}
+V(gb)$frame.color = V(gb)$color  = cmp$topic.col[match(V(gb)$name, cmp$term)]
+plot(gb)
+```
+
+Semantic Networks: contrasts
+===
+
+```{r}
+g.bush = with(sotu.tokens[sotu.tokens$pos1 %in% c("N", "M", "A") & sotu.tokens$aid %in% sotu.meta$id[sotu.meta$headline == "George W. Bush"], ],
+              windowedCoOccurenceNetwork(location = id, term = lemma, context = aid, window.size = 20))
+g.obama = with(sotu.tokens[sotu.tokens$pos1 %in% c("N", "M", "A") & sotu.tokens$aid %in% sotu.meta$id[sotu.meta$headline == "Barack Obama"], ],
+              windowedCoOccurenceNetwork(location = id, term = lemma, context = aid, window.size = 20))
+d.obama = get.data.frame(g.obama, what=c("edges"))
+d.bush = get.data.frame(g.bush, what=c("edges"))
+d =merge(d.obama, d.bush, by=c("from", "to"), all=T)
+d[is.na(d)] = 0
+do = d[d$weight.x > d$weight.y, ]
+colnames(do)[3] = "weight"
+g.obama = graph.data.frame(do, vertices = get.data.frame(g.obama, "vertices"))
+db = d[d$weight.x < d$weight.y, ]
+colnames(db)[4] = "weight"
+g.bush = graph.data.frame(db, vertices = get.data.frame(g.bush, "vertices"))
+```
+
+Semantic Networks: contrasts
+===
+
+```{r, eval=F}
+par(mfrow=c(1,2))
+for (g in list(g.obama, g.bush)) {
+  g = getBackboneNetwork(g, alpha = 1e-03, max.vertices = 75)
+  g = decompose.graph(g, min.vertices = 5, max.comps = 1)[[1]]
+  V(g)$cluster = edge.betweenness.community(g)$membership
+  g = setNetworkAttributes(g, size_attribute = V(g)$freq, cluster_attribute = V(g)$cluster)
+  plot(g)
+}
+```
+
+Semantic Networks: contrasts
+===
+
+```{r, fig.width=24, fig.height=12, echo=F}
+par(mfrow=c(1,2))
+for (g in list(g.obama, g.bush)) {
+  g = getBackboneNetwork(g, alpha = 1e-03, max.vertices = 75)
+  g = decompose.graph(g, min.vertices = 5, max.comps = 1)[[1]]
+  V(g)$cluster = edge.betweenness.community(g)$membership
+  g = setNetworkAttributes(g, size_attribute = V(g)$freq, cluster_attribute = V(g)$cluster)
+  plot(g)
+}
+```
+
+
+Slides/Source: http://vanatteveldt.com/lse-text-visualization/
+====================================
+type: section
