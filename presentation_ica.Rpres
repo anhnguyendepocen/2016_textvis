@@ -12,28 +12,14 @@ pre code.r {font-size: 1em;}
     margin-right: auto;}
 </style>
 
-Why word clouds aren't always stupid
+R for Text Analysis
 ========================================================
 author: Wouter van Atteveldt & Kasper Welbers
-date: Visual Text Analytics and Social Science, 2016-03-24
+date: ICA 2016
 css: presentation.css
 
-========================================================
-
-Thie is normal text with typo
-
-```{r}
+```{r, echo=F}
 library(corpustools)
-dtm.wordcloud(freqs=sqrt(7:1),
-  terms=c("Word clouds", "are","fancy", "but", "convey", "little", "information"))
-```
-
-
-Enter: corpustools::plotWords
-========================================================
-
-```{r}
-plotWords(x=1:5, y=(1:5)**2, words = c(rep("up",3),"and","away"), col=rainbow(5))
 ```
 
 Case: State of the Union 
@@ -338,6 +324,6 @@ for (g in list(g.obama, g.bush)) {
 ```
 
 
-Slides/Source: http://vanatteveldt.com/lse-text-visualization/
+Slides/Source: http://vanatteveldt.com/ica2016
 ====================================
 type: section
